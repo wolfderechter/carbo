@@ -1,15 +1,15 @@
-FROM oven/bun
+FROM oven/bun:latest
 
 # Create app directory
 WORKDIR /app
 
 # Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-COPY package*.json ./
-RUN bun install
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 
 # Bundle app source
 COPY . .
 
-EXPOSE 3000
+USER bun
+EXPOSE 4004
 ENTRYPOINT [ "bun", "run", "main.ts" ]
