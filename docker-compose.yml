@@ -7,12 +7,12 @@ services:
     environment:
       - NODE_ENV=production
     ports:
-      - "4452:3000"
+      - "4451:3000"
   influxdb:
     image: influxdb:latest
     volumes:
       - ./influxdb/data:/var/lib/influxdb2:rw
     env_file: .env
     ports:
-      - 4451:8086
+      - 4452:8086
     restart: unless-stopped
