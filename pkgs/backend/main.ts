@@ -1,15 +1,19 @@
 import { InfluxDB, Point } from "@influxdata/influxdb-client";
+import { fetch } from "bun";
 
-const url =
+// Influxdb
+const influxDbUrl =
   process.env.NODE_ENV === "production"
     ? "http://influxdb:8086"
     : "http://localhost:8086";
 const token = process.env.DOCKER_INFLUXDB_INIT_ADMIN_TOKEN;
 const org = process.env.DOCKER_INFLUXDB_INIT_ORG || "carbo";
 const bucket = process.env.DOCKER_INFLUXDB_INIT_BUCKET || "carbo";
-
-const influxdb = new InfluxDB({ url, token: token });
+const influxdb = new InfluxDB({ url: influxDbUrl, token: token });
 const writeClient = influxdb.getWriteApi(org, bucket);
+// Homeassistant
+const homeassistantUrl = process.env.DOCKER_HOMEASSISTANT_URL;
+const homeassistantToken = process.env.DOCKER_HOMEASSISTANT_TOKEN;
 
 interface CarboData {
   mac: string;
@@ -57,6 +61,66 @@ Bun.serve({
           .timestamp(influxTimestamp);
         writeClient.writePoint(point);
         await writeClient.flush();
+
+        // Write latestReading to homeassistant
+        if (homeassistantUrl && homeassistantToken) {
+          const deviceInfo = {
+            identifiers: ["carbo_monitor"],
+            name: "carbo",
+            model: "ESP32 CO2 monitor",
+          };
+
+          await Promise.all([
+            fetch(`${homeassistantUrl}/api/states/sensor.carbo_co2`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${homeassistantToken}`,
+              },
+              body: JSON.stringify({
+                state: co2,
+                attributes: {
+                  unit_of_measurement: "ppm",
+                  friendly_name: "CO2 level",
+                  device_class: "carbon_dioxide",
+                  device: deviceInfo,
+                },
+              }),
+            }),
+            fetch(`${homeassistantUrl}/api/states/sensor.carbo_temperature`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${homeassistantToken}`,
+              },
+              body: JSON.stringify({
+                state: temperature,
+                attributes: {
+                  unit_of_measurement: "°C",
+                  friendly_name: "Temperature",
+                  device_class: "temperature",
+                  device: deviceInfo,
+                },
+              }),
+            }),
+            fetch(`${homeassistantUrl}/api/states/sensor.carbo_humidity`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${homeassistantToken}`,
+              },
+              body: JSON.stringify({
+                state: humidity,
+                attributes: {
+                  unit_of_measurement: "%",
+                  friendly_name: "Humidity",
+                  device_class: "humidity",
+                  device: deviceInfo,
+                },
+              }),
+            }),
+          ]);
+        }
 
         return new Response("Added latestReading");
       },

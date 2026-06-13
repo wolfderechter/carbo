@@ -5,7 +5,7 @@ carbo/
 ├── <a href="./README.md">README.md</a>
 ├── <a href="./pkgs">packages</a>
 │   ├── <a href="./pkgs/firmware">firmware</a>: ESP32 firmware for reading CO2/Temp/Humidity data using the SCD41 sensor.
-│   ├── <a href="./pkgs/backend">backend</a>: NodeJS backend connecting with influxdb database.
+│   ├── <a href="./pkgs/backend">backend</a>: NodeJS backend connecting with influxdb database and homeassistant.
 </pre>
 
 ## Architecture
@@ -19,6 +19,12 @@ carbo/
 - ESP32
 - SCD41 sensor (SCD40 sensors should also work but is untested)
 - Lcd or E-Ink display
+
+## Practical
+
+This project allows to create your own CO2 monitor (and temperature and humidty) using an ESP32 with the SCD41 sensor. The backend is a small nodejs (bun) project that will receive the sensor readings and store them in an influxdb database. And optionally it will also integrate with homeassistant.
+
+The device will send and store the sensor readings by using the MAC address of the ESP32, acting as a unique identifier. Which allows us to connect multiple sensors and connect them to the same backend.
 
 ## Wiring
 
@@ -59,6 +65,15 @@ carbo/
 
 ## Getting started
 
+### firmware
+
 1. Make sure you have installed platformio with `brew install platformio` or [another install method](https://docs.platformio.org/en/latest/core/installation/methods/index.html).
-2. Connect your ESP32 to WiFi by updating the SSID credentials in the `Secrets.h` file.
+2. Setup the wifi credentials for the ESP32 by updating the SSID credentials in the `Secrets.h` file.
 3. In the `pkgs/firmware` directory, run `pio run -t upload` to upload the firmware to your ESP32. You can monitor the ESP32 with `pio device monitor`.
+
+### backend
+
+1. Set up the `.env` file based on `.env.example`, make sure to update the password and token variables:
+  - To enable homeassistant integration, set the url and token variable
+2. Run `docker compose up -d`
+3. Visit influxdb on `http://localhost:4451`
