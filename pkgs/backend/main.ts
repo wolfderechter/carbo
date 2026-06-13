@@ -12,8 +12,8 @@ const bucket = process.env.DOCKER_INFLUXDB_INIT_BUCKET || "carbo";
 const influxdb = new InfluxDB({ url: influxDbUrl, token: token });
 const writeClient = influxdb.getWriteApi(org, bucket);
 // Homeassistant
-const homeassistantUrl = process.env.HOMEASSISTANT_URL;
-const homeassistantToken = process.env.HOMEASSISTANT_TOKEN;
+const homeassistantUrl = process.env.DOCKER_HOMEASSISTANT_URL;
+const homeassistantToken = process.env.DOCKER_HOMEASSISTANT_TOKEN;
 
 interface CarboData {
   mac: string;
