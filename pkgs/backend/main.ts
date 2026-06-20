@@ -53,14 +53,18 @@ Bun.serve({
         );
 
         // Write latestReading to influxdb
-        const point = new Point("carbo measurement")
-          .tag("device_id", mac)
-          .uintField("co2", co2)
-          .floatField("temperature", temperature)
-          .uintField("humidity", humidity)
-          .timestamp(influxTimestamp);
-        writeClient.writePoint(point);
-        await writeClient.flush();
+        try {
+          const point = new Point("carbo measurement")
+            .tag("device_id", mac)
+            .uintField("co2", co2)
+            .floatField("temperature", temperature)
+            .uintField("humidity", humidity)
+            .timestamp(influxTimestamp);
+          writeClient.writePoint(point);
+          await writeClient.flush();
+        } catch (error) {
+          console.error("failed to write to influxdb", error);
+        }
 
         // Write latestReading to homeassistant
         if (homeassistantUrl && homeassistantToken) {
@@ -70,7 +74,7 @@ Bun.serve({
             model: "ESP32 CO2 monitor",
           };
 
-          await Promise.all([
+          const homeAssistantResults = await Promise.allSettled([
             fetch(`${homeassistantUrl}/api/states/sensor.carbo_co2`, {
               method: "POST",
               headers: {
@@ -120,6 +124,11 @@ Bun.serve({
               }),
             }),
           ]);
+          for (const result of homeAssistantResults) {
+            if (result.status === "rejected") {
+              console.error("HA write failed:", result.reason);
+            }
+          }
         }
 
         return new Response("Added latestReading");
